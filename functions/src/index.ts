@@ -64,6 +64,8 @@ export const sendEmergencyEmailRequest = functions.region("europe-west1").databa
     expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // 1 week
   });
 
+  functions.logger.log("Resource Public URL", url);
+
   firestore(app).collection("emergencies").add({
     to: emergencyContactsEmails,
     message: {
@@ -75,5 +77,5 @@ Transcript: ${emergencyDataVal.type === "audio" ? emergencyDataVal.audioTranscri
 Link to media (expires in 7 days): ${url}
 `,
     },
-  });
+  }).then(() => functions.logger.log("Written to Firestore")).catch((error) => functions.logger.error(error));
 });
