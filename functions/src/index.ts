@@ -1,6 +1,6 @@
-import { firestore, initializeApp, credential, storage } from "firebase-admin";
+import { firestore, initializeApp, credential, storage, apps } from "firebase-admin";
 import * as functions from "firebase-functions";
-import * as serviceAccount from "../serviceAccount.json";
+import * as serviceAccount from "./serviceAccount.json";
 
 const params = {
   type: serviceAccount.type,
@@ -38,10 +38,10 @@ type Emergency = AudioEmergency | VideoEmergency
 
 
 export const sendEmergencyEmailRequest = functions.region("europe-west1").database.ref("users/{userId}/emergencies/{emergencyId}").onCreate(async (dataSnapshot) => {
-  const app = initializeApp({
+  const app = apps.length === 0 ? initializeApp({
     credential: credential.cert(params),
     databaseURL: "https://emergency-monitor-hz21-default-rtdb.europe-west1.firebasedatabase.app",
-  });
+  }) : apps[0]!;
 
   const emergencyContacts = await dataSnapshot.ref.parent?.parent?.child("emergencyContacts").get();
 
@@ -59,10 +59,9 @@ export const sendEmergencyEmailRequest = functions.region("europe-west1").databa
 
   const storageBucket = storage(app).bucket("gs://emergency-monitor-hz21.appspot.com");
   const resource = storageBucket.file(emergencyDataVal.resourceBucketLocation);
-  const url = await resource.getSignedUrl({
-    action: "read",
-    expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // 1 week
-  });
+
+  await resource.makePublic();
+  const url = resource.publicUrl();
 
   functions.logger.log("Resource Public URL", url);
 
