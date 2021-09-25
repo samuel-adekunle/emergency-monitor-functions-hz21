@@ -15,6 +15,12 @@ const params = {
   clientC509CertUrl: serviceAccount.client_x509_cert_url,
 };
 
+interface EmergencyContact {
+  emailAddress: string
+  firstName: string
+  lastName: string
+}
+
 
 export const sendEmergencyEmailRequest = functions.region("europe-west1").database.ref("users/{userId}/emergencies/{emergencyId}").onCreate(async (dataSnapshot, ctx) => {
   const app = initializeApp({
@@ -34,8 +40,10 @@ export const sendEmergencyEmailRequest = functions.region("europe-west1").databa
   functions.logger.log("Emergency: ", emergencyDataVal);
   functions.logger.log("Emergency Contacts: ", emergencyContactsVal);
 
+  const emergencyContactsEmails = emergencyContactsVal.map(({ emailAddress }: EmergencyContact) => emailAddress);
+
   firestore(app).collection("emergencies").add({
-    to: ["ebnsamuel@gmail.com"],
+    to: emergencyContactsEmails,
     message: {
       subject: "A new Emergency was detected",
       text: JSON.stringify(emergencyDataVal),
