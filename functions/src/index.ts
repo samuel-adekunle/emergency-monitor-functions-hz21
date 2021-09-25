@@ -73,7 +73,7 @@ export const sendEmergencyEmailRequest = functions.region("europe-west1").databa
 Time Occurred: ${emergencyDataVal.timestamp}
 Detection Method: ${emergencyDataVal.type}
 Transcript: ${emergencyDataVal.type === "audio" ? emergencyDataVal.audioTranscript : "Unavailable for this detection method"}
-Link to media (expires in 7 days): ${url}
+Link to media: ${url}
 `,
     },
   }).then(() => functions.logger.log("Written to Firestore")).catch((error) => functions.logger.error(error));
