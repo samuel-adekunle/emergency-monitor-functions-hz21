@@ -1,4 +1,4 @@
-import { firestore, initializeApp, credential } from "firebase-admin";
+import { firestore, initializeApp, credential, storage } from "firebase-admin";
 import * as functions from "firebase-functions";
 import * as serviceAccount from "../serviceAccount.json";
 
@@ -21,6 +21,21 @@ interface EmergencyContact {
   lastName: string
 }
 
+interface AudioEmergency {
+  type: "audio"
+  resourceBucketLocation: string
+  timestamp: string
+  audioTranscript: string
+}
+
+interface VideoEmergency {
+  type: "video"
+  resourceBucketLocation: string
+  timestamp: string
+}
+
+type Emergency = AudioEmergency | VideoEmergency
+
 
 export const sendEmergencyEmailRequest = functions.region("europe-west1").database.ref("users/{userId}/emergencies/{emergencyId}").onCreate(async (dataSnapshot, ctx) => {
   const app = initializeApp({
@@ -34,19 +49,31 @@ export const sendEmergencyEmailRequest = functions.region("europe-west1").databa
     return functions.logger.error("No emergency contacts exists for this user");
   }
 
-  const emergencyContactsVal = emergencyContacts.val();
-  const emergencyDataVal = dataSnapshot.val();
+  const emergencyContactsVal: [EmergencyContact] = emergencyContacts.val();
+  const emergencyDataVal: Emergency = dataSnapshot.val();
 
   functions.logger.log("Emergency: ", emergencyDataVal);
   functions.logger.log("Emergency Contacts: ", emergencyContactsVal);
 
-  const emergencyContactsEmails = emergencyContactsVal.map(({ emailAddress }: EmergencyContact) => emailAddress);
+  const emergencyContactsEmails = emergencyContactsVal.map(({ emailAddress }) => emailAddress);
+
+  const storageBucket = storage(app).bucket("gs://emergency-monitor-hz21.appspot.com")
+  const resource = storageBucket.file(emergencyDataVal.resourceBucketLocation)
+  const url = await resource.getSignedUrl({
+    action: "read",
+    expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // 1 week
+  });
 
   firestore(app).collection("emergencies").add({
     to: emergencyContactsEmails,
     message: {
-      subject: "A new Emergency was detected",
-      text: JSON.stringify(emergencyDataVal),
+      subject: "An Emergency has been detected!",
+      text: `Emergency Details:
+Time Occurred: ${emergencyDataVal.timestamp}
+Detection Method: ${emergencyDataVal.type}
+Transcript: ${emergencyDataVal.type === "audio" ? emergencyDataVal.audioTranscript : "Unavailable for this detection method"}
+Link to media (expires in 7 days): ${url}
+`,
     },
   });
 });
