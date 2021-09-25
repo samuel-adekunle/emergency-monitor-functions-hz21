@@ -37,7 +37,7 @@ interface VideoEmergency {
 type Emergency = AudioEmergency | VideoEmergency
 
 
-export const sendEmergencyEmailRequest = functions.region("europe-west1").database.ref("users/{userId}/emergencies/{emergencyId}").onCreate(async (dataSnapshot, ctx) => {
+export const sendEmergencyEmailRequest = functions.region("europe-west1").database.ref("users/{userId}/emergencies/{emergencyId}").onCreate(async (dataSnapshot) => {
   const app = initializeApp({
     credential: credential.cert(params),
     databaseURL: "https://emergency-monitor-hz21-default-rtdb.europe-west1.firebasedatabase.app",
@@ -57,8 +57,8 @@ export const sendEmergencyEmailRequest = functions.region("europe-west1").databa
 
   const emergencyContactsEmails = emergencyContactsVal.map(({ emailAddress }) => emailAddress);
 
-  const storageBucket = storage(app).bucket("gs://emergency-monitor-hz21.appspot.com")
-  const resource = storageBucket.file(emergencyDataVal.resourceBucketLocation)
+  const storageBucket = storage(app).bucket("gs://emergency-monitor-hz21.appspot.com");
+  const resource = storageBucket.file(emergencyDataVal.resourceBucketLocation);
   const url = await resource.getSignedUrl({
     action: "read",
     expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // 1 week
