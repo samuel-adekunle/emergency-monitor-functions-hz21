@@ -1,10 +1,24 @@
 import { firestore, initializeApp, credential } from "firebase-admin";
 import * as functions from "firebase-functions";
+import * as serviceAccount from "../serviceAccount.json";
+
+const params = {
+  type: serviceAccount.type,
+  projectId: serviceAccount.project_id,
+  privateKeyId: serviceAccount.private_key_id,
+  privateKey: serviceAccount.private_key,
+  clientEmail: serviceAccount.client_email,
+  clientId: serviceAccount.client_id,
+  authUri: serviceAccount.auth_uri,
+  tokenUri: serviceAccount.token_uri,
+  authProviderX509CertUrl: serviceAccount.auth_provider_x509_cert_url,
+  clientC509CertUrl: serviceAccount.client_x509_cert_url,
+};
 
 
 export const sendEmergencyEmailRequest = functions.region("europe-west1").database.ref("users/{userId}/emergencies/{emergencyId}").onCreate(async (dataSnapshot, ctx) => {
   const app = initializeApp({
-    credential: credential.cert("../emergency-monitor-hz21-firebase-adminsdk-4q9bw-e7f1d7320f.json"),
+    credential: credential.cert(params),
     databaseURL: "https://emergency-monitor-hz21-default-rtdb.europe-west1.firebasedatabase.app",
   });
 
@@ -27,11 +41,4 @@ export const sendEmergencyEmailRequest = functions.region("europe-west1").databa
       text: JSON.stringify(emergencyDataVal),
     },
   });
-});
-
-export const helloWorld = functions.region("europe-west1").https.onRequest((request, response) => {
-  functions.logger.info("Hello logs!", {
-    structuredData: true,
-  });
-  response.send("Hello from Firebase!");
 });
